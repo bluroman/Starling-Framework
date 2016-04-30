@@ -1,7 +1,7 @@
 // =================================================================================================
 //
 //	Starling Framework
-//	Copyright 2011-2014 Gamua. All Rights Reserved.
+//	Copyright Gamua GmbH. All Rights Reserved.
 //
 //	This program is free software. You can redistribute and/or modify it
 //	in accordance with the terms of the accompanying license agreement.
@@ -94,8 +94,11 @@ package starling.display
         private static var sRenderAlpha:Vector.<Number> = new <Number>[1.0, 1.0, 1.0, 1.0];
         private static var sProgramNameCache:Dictionary = new Dictionary();
         
-        /** Creates a new QuadBatch instance with empty batch data. */
-        public function QuadBatch()
+        /** Creates a new QuadBatch instance with empty batch data.
+         *
+         *  @param optimizeForProfile  if enabled, the 'forceTinted' property will be automatically
+         *                             activated in 'baselineExtended' and better profiles. */
+        public function QuadBatch(optimizeForProfile:Boolean=false)
         {
             mVertexData = new VertexData(0, true);
             mIndexData = new <uint>[];
@@ -103,8 +106,13 @@ package starling.display
             mTinted = false;
             mSyncRequired = false;
             mBatchable = false;
-            mForceTinted = false;
             mOwnsTexture = false;
+
+            if (optimizeForProfile)
+            {
+                var profile:String = Starling.current.profile;
+                mForceTinted = profile != "baselineConstrained" && profile != "baseline";
+            }
 
             // Handle lost context. We use the conventional event here (not the one from Starling)
             // so we're able to create a weak event listener; this avoids memory leaks when people 
@@ -112,15 +120,25 @@ package starling.display
             Starling.current.stage3D.addEventListener(Event.CONTEXT3D_CREATE, 
                                                       onContextCreated, false, 0, true);
         }
-        
+
         /** Disposes vertex- and index-buffer. */
         public override function dispose():void
         {
             Starling.current.stage3D.removeEventListener(Event.CONTEXT3D_CREATE, onContextCreated);
             destroyBuffers();
-            
-            mVertexData.numVertices = 0;
-            mIndexData.length = 0;
+
+            if (mVertexData)
+            {
+                mVertexData.numVertices = 0;
+                mVertexData = null;
+            }
+
+            if (mIndexData)
+            {
+                mIndexData.length = 0;
+                mIndexData = null;
+            }
+
             mNumQuads = 0;
 
             if (mTexture && mOwnsTexture)
@@ -151,6 +169,7 @@ package starling.display
             clone.mTexture = mTexture;
             clone.mSmoothing = mSmoothing;
             clone.mSyncRequired = true;
+            clone.mForceTinted = forceTinted;
             clone.blendMode = blendMode;
             clone.alpha = alpha;
             return clone;
@@ -550,7 +569,7 @@ package starling.display
                 objectAlpha = 1.0;
                 blendMode = object.blendMode;
                 ignoreCurrentFilter = true;
-                if (quadBatches.length == 0) quadBatches[0] = new QuadBatch();
+                if (quadBatches.length == 0) quadBatches[0] = new QuadBatch(true);
                 else { quadBatches[0].reset(); quadBatches[0].ownsTexture = false; }
             }
             else
@@ -630,7 +649,7 @@ package starling.display
                                             smoothing, blendMode, numQuads))
                 {
                     quadBatchID++;
-                    if (quadBatches.length <= quadBatchID) quadBatches.push(new QuadBatch());
+                    if (quadBatches.length <= quadBatchID) quadBatches.push(new QuadBatch(true));
                     quadBatch = quadBatches[quadBatchID];
                     quadBatch.reset();
                     quadBatch.ownsTexture = false;
@@ -655,7 +674,7 @@ package starling.display
             
             return quadBatchID;
         }
-        
+
         // properties
         
         /** Returns the number of quads that have been added to the batch. */

@@ -1,7 +1,7 @@
 // =================================================================================================
 //
 //	Starling Framework
-//	Copyright 2011-2014 Gamua. All Rights Reserved.
+//	Copyright Gamua GmbH. All Rights Reserved.
 //
 //	This program is free software. You can redistribute and/or modify it
 //	in accordance with the terms of the accompanying license agreement.
@@ -103,6 +103,13 @@ package starling.textures
          *  cropped or filled up with transparent pixels */
         public function uploadBitmapData(data:BitmapData):void
         {
+            if (!Starling.current.isRendering)
+            {
+                trace("[Starling] Warning: uploading bitmap data while Starling is not rendering " +
+                      "may cause a crash on some platforms. Ignoring request.");
+                return;
+            }
+
             var potData:BitmapData;
             
             if (data.width != mWidth || data.height != mHeight)

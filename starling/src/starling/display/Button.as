@@ -1,7 +1,7 @@
 // =================================================================================================
 //
 //	Starling Framework
-//	Copyright 2011-2014 Gamua. All Rights Reserved.
+//	Copyright Gamua GmbH. All Rights Reserved.
 //
 //	This program is free software. You can redistribute and/or modify it
 //	in accordance with the terms of the accompanying license agreement.
@@ -419,6 +419,10 @@ package starling.display
          *  color is multiplied with this value. @default white */
         public function get color():uint { return mBody.color; }
         public function set color(value:uint):void { mBody.color = value; }
+
+        /** The smoothing type used for the button's state image. */
+        public function get smoothing():String { return mBody.smoothing; }
+        public function set smoothing(value:String):void { mBody.smoothing = value; }
 
         /** The overlay sprite is displayed on top of the button contents. It scales with the
          *  button when pressed. Use it to add additional objects to the button (e.g. an icon). */

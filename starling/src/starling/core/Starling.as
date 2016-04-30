@@ -1,7 +1,7 @@
 // =================================================================================================
 //
 //	Starling Framework
-//	Copyright 2011-2014 Gamua. All Rights Reserved.
+//	Copyright Gamua GmbH. All Rights Reserved.
 //
 //	This program is free software. You can redistribute and/or modify it
 //	in accordance with the terms of the accompanying license agreement.
@@ -185,7 +185,7 @@ package starling.core
     public class Starling extends EventDispatcher
     {
         /** The version of the Starling framework. */
-        public static const VERSION:String = "1.7.1";
+        public static const VERSION:String = "1.8";
         
         /** The key for the shader programs stored in 'contextData' */
         private static const PROGRAM_DATA_NAME:String = "Starling.programs"; 
@@ -211,6 +211,7 @@ package starling.core
         private var mStarted:Boolean;
         private var mRendering:Boolean;
         private var mSupportHighResolutions:Boolean;
+        private var mBroadcastKeyboardEvents:Boolean;
         
         private var mViewPort:Rectangle;
         private var mPreviousViewPort:Rectangle;
@@ -278,6 +279,7 @@ package starling.core
             mSimulateMultitouch = false;
             mEnableErrorChecking = false;
             mSupportHighResolutions = false;
+            mBroadcastKeyboardEvents = true;
             mLastFrameTimestamp = getTimer() / 1000.0;
             mSupport  = new RenderSupport();
             
@@ -587,7 +589,8 @@ package starling.core
                                              wantsBestResolution:Boolean=false):void
         {
             enableDepthAndStencil &&= SystemUtil.supportsDepthAndStencil;
-
+            width = (width < 32) ? 32 : width;
+            height = (height < 32) ? 32 : height;
             var configureBackBuffer:Function = mContext.configureBackBuffer;
             var methodArgs:Array = [width, height, antiAlias, enableDepthAndStencil];
             if (configureBackBuffer.length > 4) methodArgs.push(wantsBestResolution);
@@ -715,7 +718,9 @@ package starling.core
                 event.ctrlKey, event.altKey, event.shiftKey);
             
             makeCurrent();
-            mStage.broadcastEvent(keyEvent);
+
+            if (mBroadcastKeyboardEvents) mStage.broadcastEvent(keyEvent);
+            else mStage.dispatchEvent(keyEvent);
             
             if (keyEvent.isDefaultPrevented())
                 event.preventDefault();
@@ -888,6 +893,12 @@ package starling.core
         
         /** Indicates if this Starling instance is started. */
         public function get isStarted():Boolean { return mStarted; }
+
+        /** Indicates if this instance is currently rendering its display list each frame.
+         *  Even when Starling was stopped, it might continue rendering; that's because the
+         *  classic display list is only updated when stage3D is. (If Starling stopped rendering,
+         *  conventional Flash contents would freeze, as well.) */
+        public function get isRendering():Boolean { return mRendering; }
         
         /** The default juggler of this instance. Will be advanced once per frame. */
         public function get juggler():Juggler { return mJuggler; }
@@ -933,9 +944,13 @@ package starling.core
             mSimulateMultitouch = value;
             if (mContext) mTouchProcessor.simulateMultitouch = value;
         }
-        
-        /** Indicates if Stage3D render methods will report errors. Activate only when needed,
-         *  as this has a negative impact on performance. @default false */
+
+        /** Indicates if Stage3D render methods will report errors. It's recommended to activate
+         *  this when writing custom rendering code (shaders, etc.), since you'll get more detailed
+         *  error messages. However, it has a very negative impact on performance, and it prevents
+         *  ATF textures from being restored on a context loss. Never activate for release builds!
+         *
+         *  @default false */
         public function get enableErrorChecking():Boolean { return mEnableErrorChecking; }
         public function set enableErrorChecking(value:Boolean):void 
         { 
@@ -1085,6 +1100,15 @@ package starling.core
                 mSupportHighResolutions = value;
                 if (contextValid) updateViewPort(true);
             }
+        }
+
+        /** Indicates if keyboard events are broadcast to all display objects, or dispatched
+         *  to the stage only. In some situations, it makes sense to deactivate this setting
+         *  for performance reasons. @default true */
+        public function get broadcastKeyboardEvents():Boolean { return mBroadcastKeyboardEvents; }
+        public function set broadcastKeyboardEvents(value:Boolean):void
+        {
+            mBroadcastKeyboardEvents = value;
         }
         
         /** The TouchProcessor is passed all mouse and touch input and is responsible for
